@@ -97,6 +97,27 @@ def test_shell_io():
     assert shell.run("cat < a.txt > b.txt") == IO_ERR
 
 
+def test_shell_pipe():
+    shell = Shell(SHELL_PATH)
+
+    assert shell.run("echo hello world! | wc -c") == "13"
+    assert not shell.run("echo hello world | cat > hw.txt")
+    assert shell.run("<hw.txt head -c 5 | wc -c | cat | cat | wc -l") == "1"
+    assert not shell.run("tail -n 5 < hw.txt |cat |>out.txt wc -c")
+    assert shell.run("cat < out.txt |cat | cat | cat | cat") == "12"
+    assert not shell.run("rm hw.txt | rm out.txt")
+
+    assert shell.run("cat < a.txt | wc -c > b.txt | wc -l") == SYNTAX_ERR
+    assert shell.run("cat < a.txt | cat < file | wc -c") == SYNTAX_ERR
+    assert shell.run("echo hello || cat > a.txt") == SYNTAX_ERR
+    assert shell.run("echo text |>| cat > a.txt") == SYNTAX_ERR
+    assert shell.run("echo hello | >aa <bb.txt | cat > a.txt") == SYNTAX_ERR
+
+    assert shell.run("cat < /sys/proc/aa/bb | wc -l >> file") == SYNTAX_ERR
+    assert shell.run("cat < /sys/proc/cc/dd | wc -l > file | cat") == SYNTAX_ERR
+
+
 if __name__ == "__main__":
     test_shell_base()
     test_shell_io()
+    test_shell_pipe()
